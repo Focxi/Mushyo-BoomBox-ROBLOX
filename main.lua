@@ -1,7 +1,7 @@
 --[[ 
     NYXBLOKZ BOOMBOX SYSTEM - CORE
     VINCULATED TO GITHUB: Focxi/playlist.json
-    FIXED BY GEMINI
+    FIXED BY GEMINI (V2 - BARRA REDUZIDA)
 ]]
 
 local Players = game:GetService("Players")
@@ -10,7 +10,7 @@ local HttpService = game:GetService("HttpService")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
--- [ CONFIGURAÇÃO DA PLAYLIST - URL RAW CORRIGIDA ]
+-- [ CONFIGURAÇÃO DA PLAYLIST ]
 local GITHUB_PLAYLIST_URL = "https://raw.githubusercontent.com/Focxi/playlist.json/main/playlist.json?t=" .. tick()
 
 local function carregarPlaylist()
@@ -48,57 +48,58 @@ local sg = Instance.new("ScreenGui", PlayerGui)
 sg.Name = "BoxfyUltra"
 sg.ResetOnSpawn = false
 
--- [ BARRA INFERIOR (TUTORIAL E CRÉDITOS) ]
+-- [ BARRA INFERIOR COMPACTA ]
 local footerBar = Instance.new("Frame", sg)
-footerBar.Size = UDim2.new(1, 0, 0, 45)
-footerBar.Position = UDim2.new(0, 0, 1, -45)
+footerBar.Size = UDim2.new(1, 0, 0, 40) -- Altura levemente menor
+footerBar.Position = UDim2.new(0, 0, 1, -40)
 footerBar.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-footerBar.BackgroundTransparency = 0.2
+footerBar.BackgroundTransparency = 0.3
 footerBar.BorderSizePixel = 0
 
 local footerContent = Instance.new("Frame", footerBar)
-footerContent.Size = UDim2.new(0, 800, 1, 0)
+footerContent.Size = UDim2.new(0, 600, 1, 0) -- Largura reduzida de 800 para 600
 footerContent.Position = UDim2.new(0.5, 0, 0.5, 0)
 footerContent.AnchorPoint = Vector2.new(0.5, 0.5)
 footerContent.BackgroundTransparency = 1
 
--- Avatar e Crédito
+-- Avatar
 local avatarImg = Instance.new("ImageLabel", footerContent)
-avatarImg.Size = UDim2.new(0, 35, 0, 35)
-avatarImg.Position = UDim2.new(0, 10, 0.5, 0)
+avatarImg.Size = UDim2.new(0, 30, 0, 30)
+avatarImg.Position = UDim2.new(0, 5, 0.5, 0)
 avatarImg.AnchorPoint = Vector2.new(0, 0.5)
 avatarImg.Image = "rbxthumb://type=AvatarHeadShot&id=10386373014&w=150&h=150"
 avatarImg.BackgroundTransparency = 1
 Instance.new("UICorner", avatarImg).CornerRadius = UDim.new(1, 0)
 
+-- Crédito
 local credText = Instance.new("TextLabel", footerContent)
-credText.Size = UDim2.new(0, 120, 1, 0)
-credText.Position = UDim2.new(0, 50, 0, 0)
-credText.Text = "Criado por HRJ_DEV"
+credText.Size = UDim2.new(0, 100, 1, 0)
+credText.Position = UDim2.new(0, 40, 0, 0)
+credText.Text = "BY HRJ_DEV"
 credText.TextColor3 = Color3.new(1, 1, 1)
 credText.Font = Enum.Font.GothamBold
-credText.TextSize = 12
+credText.TextSize = 10
 credText.BackgroundTransparency = 1
 credText.TextXAlignment = Enum.TextXAlignment.Left
 
 -- Tutorial
 local tutorialTxt = Instance.new("TextLabel", footerContent)
-tutorialTxt.Size = UDim2.new(1, -180, 1, 0)
-tutorialTxt.Position = UDim2.new(0, 180, 0, 0)
-tutorialTxt.Text = "AVISO: Aperte J para abrir/fechar. Equipe sua boombox e toque qualquer musica antes de usar o Boxfy para funcionar corretamente!"
+tutorialTxt.Size = UDim2.new(1, -150, 1, 0)
+tutorialTxt.Position = UDim2.new(0, 150, 0, 0)
+tutorialTxt.Text = "Aperte J para abrir. Equipe o rádio e toque algo antes de usar."
 tutorialTxt.TextColor3 = Color3.fromRGB(200, 200, 200)
 tutorialTxt.Font = Enum.Font.Gotham
-tutorialTxt.TextSize = 11
+tutorialTxt.TextSize = 10
 tutorialTxt.BackgroundTransparency = 1
-tutorialTxt.TextWrapped = true
 tutorialTxt.TextXAlignment = Enum.TextXAlignment.Left
 
--- [ TIMER: A BARRA TOTAL SOME EM 30 SEGUNDOS ]
+-- [ TIMER: SOME TUDO EM 30 SEGUNDOS ]
 task.delay(30, function()
     if footerBar then
-        footerBar:TweenPosition(UDim2.new(0, 0, 1, 50), "In", "Quad", 0.5, true)
+        -- Animação de descida suave
+        footerBar:TweenPosition(UDim2.new(0, 0, 1, 10), "In", "Quad", 0.5, true)
         task.wait(0.6)
-        footerBar:Destroy()
+        footerBar:Destroy() -- Deleta completamente da memória
     end
 end)
 
@@ -109,6 +110,7 @@ main.Position = UDim2.new(0.5, 0, 0.5, 0)
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 main.BackgroundTransparency = 0.05
+main.Visible = false -- Inicia invisível para não poluir a tela
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 24)
 
 -- [ FUNÇÕES DE SOM E CONTROLE ]
