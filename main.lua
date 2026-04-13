@@ -9,8 +9,8 @@ local HttpService = game:GetService("HttpService")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
--- [ CONFIGURAÇÃO DA PLAYLIST VIA GITHUB ]
-local GITHUB_PLAYLIST_URL = "https://raw.githubusercontent.com/Focxi/Mushyo-BoomBox-ROBLOX/refs/heads/main/playlist.json"
+-- [ CONFIGURAÇÃO DA PLAYLIST VIA GITHUB - LINK CURTO E ANTI-CACHE ]
+local GITHUB_PLAYLIST_URL = "https://raw.githubusercontent.com/Focxi/Mushyo-BoomBox-ROBLOX/main/playlist.json?t=" .. tick()
 
 local function carregarPlaylist()
     local sucesso, resultado = pcall(function()
@@ -18,7 +18,13 @@ local function carregarPlaylist()
     end)
     
     if sucesso and not resultado:find("404") then
-        return HttpService:JSONDecode(resultado)
+        local ok, dados = pcall(function() return HttpService:JSONDecode(resultado) end)
+        if ok then
+            return dados
+        else
+            warn("Erro de formato no JSON do GitHub.")
+            return {{n = "ERRO DE FORMATO", id = "0"}}
+        end
     else
         warn("Erro ao carregar playlist do GitHub. Usando lista vazia.")
         return {{n = "ERRO NA NUVEM", id = "0"}}
@@ -40,6 +46,13 @@ sg.ResetOnSpawn = false
 local function getSnd()
     local char = Player.Character
     if not char then return nil end
+    -- Tenta achar na ferramenta equipada primeiro
+    local tool = char:FindFirstChildWhichIsA("Tool")
+    if tool then
+        local s = tool:FindFirstChildWhichIsA("Sound", true)
+        if s then return s end
+    end
+    -- Se não achou na equipada, varre tudo (backup)
     for _, item in pairs(char:GetChildren()) do
         if item:IsA("Tool") then
             local potentialSound = item:FindFirstChildWhichIsA("Sound", true)
