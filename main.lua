@@ -60,14 +60,62 @@ local function getSnd()
     return nil
 end
 
--- [ INTERFACE ]
+-- [ INTERFACE PRINCIPAL ]
 local main = Instance.new("Frame", sg)
-main.Size = UDim2.new(0, 310, 0, 440)
+main.Size = UDim2.new(0, 310, 0, 480) -- Aumentado um pouco para os créditos
 main.Position = UDim2.new(0.5, 0, 0.5, 0)
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 main.BackgroundTransparency = 0.05
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 24)
+
+-- [ CRÉDITOS HRJ_DEV ]
+local creatorFrame = Instance.new("Frame", main)
+creatorFrame.Size = UDim2.new(1, 0, 0, 40)
+creatorFrame.Position = UDim2.new(0, 0, 1, -40)
+creatorFrame.BackgroundTransparency = 1
+
+local avatarImg = Instance.new("ImageLabel", creatorFrame)
+avatarImg.Size = UDim2.new(0, 30, 0, 30)
+avatarImg.Position = UDim2.new(0, 15, 0.5, 0)
+avatarImg.AnchorPoint = Vector2.new(0, 0.5)
+avatarImg.BackgroundTransparency = 1
+avatarImg.Image = "rbxthumb://type=AvatarHeadShot&id=10386373014&w=150&h=150"
+Instance.new("UICorner", avatarImg).CornerRadius = UDim.new(1, 0)
+
+local creatorText = Instance.new("TextLabel", creatorFrame)
+creatorText.Size = UDim2.new(1, -60, 1, 0)
+creatorText.Position = UDim2.new(0, 50, 0, 0)
+creatorText.Text = "Criado por HRJ_DEV"
+creatorText.TextColor3 = Color3.new(1, 1, 1)
+creatorText.Font = Enum.Font.GothamMedium
+creatorText.TextSize = 11
+creatorText.TextXAlignment = Enum.TextXAlignment.Left
+creatorText.BackgroundTransparency = 1
+
+-- [ ABA DE TUTORIAL (Sumiço em 1 minuto) ]
+local tutorialFrame = Instance.new("Frame", main)
+tutorialFrame.Size = UDim2.new(1, -20, 0, 70)
+tutorialFrame.Position = UDim2.new(0.5, 0, 1, -115)
+tutorialFrame.AnchorPoint = Vector2.new(0.5, 1)
+tutorialFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+tutorialFrame.BorderSizePixel = 0
+Instance.new("UICorner", tutorialFrame).CornerRadius = UDim.new(0, 10)
+
+local tutorialLabel = Instance.new("TextLabel", tutorialFrame)
+tutorialLabel.Size = UDim2.new(1, -10, 1, -10)
+tutorialLabel.Position = UDim2.new(0.5, 0, 0.5, 0)
+tutorialLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+tutorialLabel.Text = "TUTORIAL: Aperte J para fechar. Equipe sua boombox e toque qualquer musica antes de usar o Boxfy. O script precisa de um som ativo para funcionar!"
+tutorialLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+tutorialLabel.Font = Enum.Font.Gotham
+tutorialLabel.TextSize = 10
+tutorialLabel.TextWrapped = true
+tutorialLabel.BackgroundTransparency = 1
+
+task.delay(60, function()
+    if tutorialFrame then tutorialFrame:Destroy() end
+end)
 
 UIS.InputBegan:Connect(function(input, gpe)
     if not gpe and input.KeyCode == Enum.KeyCode.J then sg.Enabled = not sg.Enabled end
@@ -79,7 +127,7 @@ top.BackgroundTransparency = 1
 
 local title = Instance.new("TextLabel", top)
 title.Size = UDim2.new(1, 0, 1, 0)
-title.Text = "BOXFY CLOUD - NYXBLOKZ"
+title.Text = "BOXFY CLOUD - HRJ_DEV"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 12
@@ -106,7 +154,7 @@ search.Font = Enum.Font.Gotham
 search.TextSize = 13
 
 local sc = Instance.new("ScrollingFrame", main)
-sc.Size = UDim2.new(1, -20, 1, -210)
+sc.Size = UDim2.new(1, -20, 1, -250)
 sc.Position = UDim2.new(0.5, 0, 0, 105)
 sc.AnchorPoint = Vector2.new(0.5, 0)
 sc.BackgroundTransparency = 1
@@ -117,7 +165,7 @@ listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
 local footer = Instance.new("Frame", main)
 footer.Size = UDim2.new(1, 0, 0, 100)
-footer.Position = UDim2.new(0, 0, 1, -100)
+footer.Position = UDim2.new(0, 0, 1, -140) -- Ajustado posição por causa dos novos créditos
 footer.BackgroundTransparency = 1
 
 local currentName = Instance.new("TextLabel", footer)
