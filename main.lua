@@ -1,16 +1,21 @@
 --[[ 
     NYXBLOKZ BOOMBOX SYSTEM - CORE
     VINCULATED TO GITHUB: Focxi/playlist.json
-    FIXED BY GEMINI
+    FIXED BY GEMINI (Server-Side Sync Update)
 ]]
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
--- [ CONFIGURAÇÃO DA PLAYLIST - URL RAW CORRIGIDA ]
+-- [ REFERÊNCIA DO EVENTO DE REDE ]
+local RemoteEvent = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Events"):WaitForChild("RemoteEvent")
+
+-- [ CONFIGURAÇÃO DA PLAYLIST ]
 local GITHUB_PLAYLIST_URL = "https://raw.githubusercontent.com/Focxi/playlist.json/main/playlist.json?t=" .. tick()
 
 local function carregarPlaylist()
@@ -41,66 +46,13 @@ end
 local playlist = carregarPlaylist()
 local currentIndex = 1
 local isShuffle = false
+local isPlaying = false
 
 -- [ LIMPEZA E CRIAÇÃO DA UI ]
 if PlayerGui:FindFirstChild("BoxfyUltra") then PlayerGui.BoxfyUltra:Destroy() end
 local sg = Instance.new("ScreenGui", PlayerGui)
 sg.Name = "BoxfyUltra"
 sg.ResetOnSpawn = false
-
--- [ BARRA INFERIOR (TUTORIAL E CRÉDITOS) ]
-local footerBar = Instance.new("Frame", sg)
-footerBar.Size = UDim2.new(1, 0, 0, 45)
-footerBar.Position = UDim2.new(0, 0, 1, -45)
-footerBar.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-footerBar.BackgroundTransparency = 0.2
-footerBar.BorderSizePixel = 0
-
-local footerContent = Instance.new("Frame", footerBar)
-footerContent.Size = UDim2.new(0, 800, 1, 0)
-footerContent.Position = UDim2.new(0.5, 0, 0.5, 0)
-footerContent.AnchorPoint = Vector2.new(0.5, 0.5)
-footerContent.BackgroundTransparency = 1
-
--- Avatar e Crédito
-local avatarImg = Instance.new("ImageLabel", footerContent)
-avatarImg.Size = UDim2.new(0, 35, 0, 35)
-avatarImg.Position = UDim2.new(0, 10, 0.5, 0)
-avatarImg.AnchorPoint = Vector2.new(0, 0.5)
-avatarImg.Image = "rbxthumb://type=AvatarHeadShot&id=10386373014&w=150&h=150"
-avatarImg.BackgroundTransparency = 1
-Instance.new("UICorner", avatarImg).CornerRadius = UDim.new(1, 0)
-
-local credText = Instance.new("TextLabel", footerContent)
-credText.Size = UDim2.new(0, 120, 1, 0)
-credText.Position = UDim2.new(0, 50, 0, 0)
-credText.Text = "Criado por HRJ_DEV"
-credText.TextColor3 = Color3.new(1, 1, 1)
-credText.Font = Enum.Font.GothamBold
-credText.TextSize = 12
-credText.BackgroundTransparency = 1
-credText.TextXAlignment = Enum.TextXAlignment.Left
-
--- Tutorial
-local tutorialTxt = Instance.new("TextLabel", footerContent)
-tutorialTxt.Size = UDim2.new(1, -180, 1, 0)
-tutorialTxt.Position = UDim2.new(0, 180, 0, 0)
-tutorialTxt.Text = "AVISO: Aperte J para abrir/fechar. Equipe sua boombox e toque qualquer musica antes de usar o Boxfy para funcionar corretamente!"
-tutorialTxt.TextColor3 = Color3.fromRGB(200, 200, 200)
-tutorialTxt.Font = Enum.Font.Gotham
-tutorialTxt.TextSize = 11
-tutorialTxt.BackgroundTransparency = 1
-tutorialTxt.TextWrapped = true
-tutorialTxt.TextXAlignment = Enum.TextXAlignment.Left
-
--- [ TIMER: A BARRA TOTAL SOME EM 30 SEGUNDOS ]
-task.delay(30, function()
-    if footerBar then
-        footerBar:TweenPosition(UDim2.new(0, 0, 1, 50), "In", "Quad", 0.5, true)
-        task.wait(0.6)
-        footerBar:Destroy()
-    end
-end)
 
 -- [ HUB PRINCIPAL ]
 local main = Instance.new("Frame", sg)
@@ -111,22 +63,40 @@ main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 main.BackgroundTransparency = 0.05
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 24)
 
--- [ FUNÇÕES DE SOM E CONTROLE ]
+-- [ FUNÇÕES DE CONTROLE (SYNC SERVER) ]
+
 local function getSnd()
     local char = Player.Character
     if not char then return nil end
     local tool = char:FindFirstChildWhichIsA("Tool")
     if tool then
-        local s = tool:FindFirstChildWhichIsA("Sound", true)
-        if s then return s end
+        return tool:FindFirstChildWhichIsA("Sound", true)
     end
     return nil
 end
 
-UIS.InputBegan:Connect(function(input, gpe)
-    if not gpe and input.KeyCode == Enum.KeyCode.J then main.Visible = not main.Visible end
-end)
+local function play(idx)
+    if not playlist[idx] then return end
+    currentIndex = idx
+    
+    local songId = tonumber(playlist[idx].id)
+    if not songId then return end
 
+    -- Dispara para o Servidor (Todos ouvem)
+    RemoteEvent:FireServer("PlaySongSuccess", songId)
+    
+    currentName.Text = playlist[idx].n:upper()
+    bPlay.Text = "Ⅱ"
+    isPlaying = true
+end
+
+local function stop()
+    RemoteEvent:FireServer("StopSongSuccess")
+    bPlay.Text = "▶"
+    isPlaying = false
+end
+
+-- [ ELEMENTOS DA UI ]
 local top = Instance.new("Frame", main)
 top.Size = UDim2.new(1, 0, 0, 50)
 top.BackgroundTransparency = 1
@@ -174,7 +144,7 @@ footer.Size = UDim2.new(1, 0, 0, 100)
 footer.Position = UDim2.new(0, 0, 1, -100)
 footer.BackgroundTransparency = 1
 
-local currentName = Instance.new("TextLabel", footer)
+currentName = Instance.new("TextLabel", footer)
 currentName.Size = UDim2.new(1, -20, 0, 20)
 currentName.Position = UDim2.new(0.5, 0, 0, 5)
 currentName.AnchorPoint = Vector2.new(0.5, 0)
@@ -205,29 +175,17 @@ end
 
 local bShuffle = createBtn("⤨", 0.22)
 local bBack    = createBtn("«", 0.38)
-local bPlay    = createBtn("▶", 0.5, 45)
+bPlay          = createBtn("▶", 0.5, 45)
 local bNext    = createBtn("»", 0.62)
 local bClose   = createBtn("X", 0.78)
 
-local function play(idx)
-    if not playlist[idx] then return end
-    currentIndex = idx
-    local snd = getSnd()
-    if snd then
-        snd:Stop()
-        snd.SoundId = "rbxassetid://"..playlist[idx].id
-        snd:Play()
-        currentName.Text = playlist[idx].n:upper()
-        bPlay.Text = "Ⅱ"
-    else
-        currentName.Text = "EQUIPE O RÁDIO!"
-    end
-end
+-- [ EVENTOS DOS BOTÕES ]
 
 bPlay.MouseButton1Click:Connect(function()
-    local snd = getSnd()
-    if snd then
-        if snd.IsPlaying then snd:Pause() bPlay.Text = "▶" else snd:Resume() bPlay.Text = "Ⅱ" end
+    if isPlaying then
+        stop()
+    else
+        play(currentIndex)
     end
 end)
 
@@ -272,6 +230,11 @@ end
 
 search:GetPropertyChangedSignal("Text"):Connect(function() refresh(search.Text) end)
 refresh("")
+
+-- [ DRAG & DROP E TECLAS ]
+UIS.InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.J then main.Visible = not main.Visible end
+end)
 
 local d, sp, mp
 top.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then d = true sp = i.Position mp = main.Position end end)
