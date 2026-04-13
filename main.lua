@@ -1,7 +1,7 @@
 --[[ 
     NYXBLOKZ BOOMBOX SYSTEM - CORE
     VINCULATED TO GITHUB: Focxi/playlist.json
-    FIXED BY GEMINI (Server-Side Sync Update)
+    FIXED BY GEMINI (Final Stability Update)
 ]]
 
 local Players = game:GetService("Players")
@@ -12,8 +12,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
--- [ REFERÊNCIA DO EVENTO DE REDE ]
-local RemoteEvent = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Events"):WaitForChild("RemoteEvent")
+-- [ REFERÊNCIA DO EVENTO ]
+-- Usamos pcall para evitar que o script quebre se o mapa demorar a carregar os módulos
+local RemoteEvent
+local successEvent = pcall(function()
+    RemoteEvent = ReplicatedStorage:WaitForChild("Modules", 5):WaitForChild("Events", 5):WaitForChild("RemoteEvent", 5)
+end)
 
 -- [ CONFIGURAÇÃO DA PLAYLIST ]
 local GITHUB_PLAYLIST_URL = "https://raw.githubusercontent.com/Focxi/playlist.json/main/playlist.json?t=" .. tick()
@@ -23,24 +27,12 @@ local function carregarPlaylist()
         return game:HttpGet(GITHUB_PLAYLIST_URL)
     end)
     
-    if sucesso then
-        if resultado:find("<!DOCTYPE html>") then
-            warn("BOXFY: Erro! O link retornou HTML.")
-            return {{n = "ERRO: LINK INVALIDO", id = "0"}}
-        end
-
+    if sucesso and not resultado:find("<!DOCTYPE html>") then
         local ok, dados = pcall(function() return HttpService:JSONDecode(resultado) end)
-        if ok then
-            print("BOXFY: " .. #dados .. " musicas carregadas!")
-            return dados
-        else
-            warn("BOXFY: Erro no JSON.")
-            return {{n = "ERRO NO JSON", id = "0"}}
-        end
-    else
-        warn("BOXFY: Erro de conexao.")
-        return {{n = "ERRO DE CONEXAO", id = "0"}}
+        if ok then return dados end
     end
+    warn("BOXFY: Falha ao carregar playlist externa.")
+    return {{n = "ERRO AO CARREGAR LISTA", id = "0"}}
 end
 
 local playlist = carregarPlaylist()
@@ -48,13 +40,12 @@ local currentIndex = 1
 local isShuffle = false
 local isPlaying = false
 
--- [ LIMPEZA E CRIAÇÃO DA UI ]
+-- [ UI - CRIAÇÃO ]
 if PlayerGui:FindFirstChild("BoxfyUltra") then PlayerGui.BoxfyUltra:Destroy() end
 local sg = Instance.new("ScreenGui", PlayerGui)
 sg.Name = "BoxfyUltra"
 sg.ResetOnSpawn = false
 
--- [ HUB PRINCIPAL ]
 local main = Instance.new("Frame", sg)
 main.Size = UDim2.new(0, 310, 0, 420)
 main.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -63,40 +54,39 @@ main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 main.BackgroundTransparency = 0.05
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 24)
 
--- [ FUNÇÕES DE CONTROLE (SYNC SERVER) ]
-
-local function getSnd()
-    local char = Player.Character
-    if not char then return nil end
-    local tool = char:FindFirstChildWhichIsA("Tool")
-    if tool then
-        return tool:FindFirstChildWhichIsA("Sound", true)
-    end
-    return nil
-end
-
+-- [ FUNÇÕES DE CONTROLE ]
 local function play(idx)
-    if not playlist[idx] then return end
+    if not playlist[idx] or playlist[idx].id == "0" then return end
     currentIndex = idx
     
     local songId = tonumber(playlist[idx].id)
-    if not songId then return end
-
-    -- Dispara para o Servidor (Todos ouvem)
-    RemoteEvent:FireServer("PlaySongSuccess", songId)
     
-    currentName.Text = playlist[idx].n:upper()
-    bPlay.Text = "Ⅱ"
-    isPlaying = true
+    if RemoteEvent then
+        -- Tenta tocar via Servidor
+        RemoteEvent:FireServer("PlaySongSuccess", songId)
+        currentName.Text = "CARREGANDO: " .. playlist[idx].n:upper()
+        
+        -- Pequeno delay para atualizar o texto (esperando o carregamento do rádio)
+        task.delay(0.5, function()
+            currentName.Text = playlist[idx].n:upper()
+            bPlay.Text = "Ⅱ"
+            isPlaying = true
+        end)
+    else
+        currentName.Text = "ERRO: EVENTO NÃO ENCONTRADO"
+    end
 end
 
 local function stop()
-    RemoteEvent:FireServer("StopSongSuccess")
+    if RemoteEvent then
+        RemoteEvent:FireServer("StopSongSuccess")
+    end
     bPlay.Text = "▶"
     isPlaying = false
+    currentName.Text = "PARADO"
 end
 
--- [ ELEMENTOS DA UI ]
+-- [ ELEMENTOS VISUAIS ]
 local top = Instance.new("Frame", main)
 top.Size = UDim2.new(1, 0, 0, 50)
 top.BackgroundTransparency = 1
@@ -137,7 +127,6 @@ sc.BackgroundTransparency = 1
 sc.ScrollBarThickness = 0
 local listLayout = Instance.new("UIListLayout", sc)
 listLayout.Padding = UDim.new(0, 5)
-listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
 local footer = Instance.new("Frame", main)
 footer.Size = UDim2.new(1, 0, 0, 100)
@@ -148,7 +137,7 @@ currentName = Instance.new("TextLabel", footer)
 currentName.Size = UDim2.new(1, -20, 0, 20)
 currentName.Position = UDim2.new(0.5, 0, 0, 5)
 currentName.AnchorPoint = Vector2.new(0.5, 0)
-currentName.Text = "PARADO"
+currentName.Text = "PRONTO"
 currentName.TextColor3 = Color3.fromRGB(180, 180, 180)
 currentName.Font = Enum.Font.GothamMedium
 currentName.TextSize = 10
@@ -179,19 +168,13 @@ bPlay          = createBtn("▶", 0.5, 45)
 local bNext    = createBtn("»", 0.62)
 local bClose   = createBtn("X", 0.78)
 
--- [ EVENTOS DOS BOTÕES ]
-
+-- [ EVENTOS ]
 bPlay.MouseButton1Click:Connect(function()
-    if isPlaying then
-        stop()
-    else
-        play(currentIndex)
-    end
+    if isPlaying then stop() else play(currentIndex) end
 end)
 
 bNext.MouseButton1Click:Connect(function()
-    local n = isShuffle and math.random(1, #playlist) or (currentIndex % #playlist + 1)
-    play(n)
+    play(isShuffle and math.random(1, #playlist) or (currentIndex % #playlist + 1))
 end)
 
 bBack.MouseButton1Click:Connect(function()
@@ -212,7 +195,6 @@ local function refresh(txt)
     for i, s in pairs(playlist) do
         if txt == "" or s.n:lower():find(txt:lower()) then
             local b = Instance.new("TextButton", sc)
-            b.Name = tostring(i)
             b.Size = UDim2.new(1, -10, 0, 38)
             b.Text = "      " .. s.n
             b.TextColor3 = Color3.fromRGB(160, 160, 160)
@@ -220,7 +202,7 @@ local function refresh(txt)
             b.BackgroundColor3 = Color3.new(1, 1, 1)
             b.BackgroundTransparency = 0.97
             b.Font = Enum.Font.Gotham
-            b.TextSize = 12
+            b.TextSize = 11
             Instance.new("UICorner", b).CornerRadius = UDim.new(0, 12)
             b.MouseButton1Click:Connect(function() play(i) end)
         end
@@ -231,11 +213,11 @@ end
 search:GetPropertyChangedSignal("Text"):Connect(function() refresh(search.Text) end)
 refresh("")
 
--- [ DRAG & DROP E TECLAS ]
 UIS.InputBegan:Connect(function(input, gpe)
     if not gpe and input.KeyCode == Enum.KeyCode.J then main.Visible = not main.Visible end
 end)
 
+-- Arrastar UI
 local d, sp, mp
 top.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then d = true sp = i.Position mp = main.Position end end)
 UIS.InputChanged:Connect(function(i) if d and i.UserInputType == Enum.UserInputType.MouseMovement then 
