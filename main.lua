@@ -1,6 +1,6 @@
 --[[ 
     NYXBLOKZ BOOMBOX SYSTEM - CORE
-    VINCULATED TO GITHUB: Mushyo-BoomBox-ROBLOX
+    VINCULATED TO NEW GITHUB: Focxi/playlist.json
 ]]
 
 local Players = game:GetService("Players")
@@ -9,9 +9,9 @@ local HttpService = game:GetService("HttpService")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
--- [ CONFIGURAÇÃO DA PLAYLIST VIA GITHUB - CORREÇÃO DE LINK E ANTI-CACHE ]
--- Adicionado "?t=" para que o tick() não quebre a extensão .json
-local GITHUB_PLAYLIST_URL = "https://raw.githubusercontent.com/Focxi/Mushyo-BoomBox-ROBLOX/refs/heads/main/playlist.json?t=" .. tick()
+-- [ CONFIGURAÇÃO DA NOVA PLAYLIST EXTERNA ]
+-- Atualizado para o novo repositório: Focxi/playlist.json
+local GITHUB_PLAYLIST_URL = "https://raw.githubusercontent.com/Focxi/playlist.json/main/playlist.json?t=" .. tick()
 
 local function carregarPlaylist()
     local sucesso, resultado = pcall(function()
@@ -21,15 +21,15 @@ local function carregarPlaylist()
     if sucesso and not resultado:find("404") then
         local ok, dados = pcall(function() return HttpService:JSONDecode(resultado) end)
         if ok then
-            print("BOXFY: Playlist carregada com sucesso!")
+            print("BOXFY: Playlist externa carregada!")
             return dados
         else
-            warn("BOXFY: Erro de formato no JSON (verifique virgulas no GitHub).")
+            warn("BOXFY: Erro de formatacao no novo JSON.")
             return {{n = "ERRO DE FORMATO", id = "0"}}
         end
     else
-        warn("BOXFY: Erro ao carregar playlist (404 ou conexao). Link usado: " .. GITHUB_PLAYLIST_URL)
-        return {{n = "ERRO NA NUVEM", id = "0"}}
+        warn("BOXFY: Nao encontrou a playlist no novo link. Verifique se o repo e PUBLICO.")
+        return {{n = "ERRO DE CONEXAO", id = "0"}}
     end
 end
 
@@ -44,7 +44,7 @@ local sg = Instance.new("ScreenGui", PlayerGui)
 sg.Name = "BoxfyUltra"
 sg.ResetOnSpawn = false
 
--- [ FUNÇÃO UNIVERSAL DE BUSCA POR RÁDIO ]
+-- [ FUNÇÃO DE BUSCA POR RÁDIO ]
 local function getSnd()
     local char = Player.Character
     if not char then return nil end
@@ -52,12 +52,6 @@ local function getSnd()
     if tool then
         local s = tool:FindFirstChildWhichIsA("Sound", true)
         if s then return s end
-    end
-    for _, item in pairs(char:GetChildren()) do
-        if item:IsA("Tool") then
-            local potentialSound = item:FindFirstChildWhichIsA("Sound", true)
-            if potentialSound then return potentialSound end
-        end
     end
     return nil
 end
@@ -69,10 +63,9 @@ main.Position = UDim2.new(0.5, 0, 0.5, 0)
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 main.BackgroundTransparency = 0.05
-main.BorderSizePixel = 0
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 24)
 
--- Atalho de teclado (J)
+-- Atalho (J)
 UIS.InputBegan:Connect(function(input, gpe)
     if not gpe and input.KeyCode == Enum.KeyCode.J then sg.Enabled = not sg.Enabled end
 end)
