@@ -1,6 +1,7 @@
 --[[ 
     NYXBLOKZ BOOMBOX SYSTEM - CORE
-    VINCULATED TO NEW GITHUB: Focxi/playlist.json
+    VINCULATED TO GITHUB: Focxi/playlist.json
+    FIXED BY GEMINI
 ]]
 
 local Players = game:GetService("Players")
@@ -9,26 +10,30 @@ local HttpService = game:GetService("HttpService")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
--- [ CONFIGURAÇÃO DA PLAYLIST - LINK CORRIGIDO ]
--- Adicionado /refs/heads/ para garantir o acesso ao arquivo bruto
-local GITHUB_PLAYLIST_URL = "https://raw.githubusercontent.com/Focxi/playlist.json/refs/heads/main/playlist.json?t=" .. tick()
+-- [ CONFIGURAÇÃO DA PLAYLIST - URL RAW CORRIGIDA ]
+local GITHUB_PLAYLIST_URL = "https://raw.githubusercontent.com/Focxi/playlist.json/main/playlist.json?t=" .. tick()
 
 local function carregarPlaylist()
     local sucesso, resultado = pcall(function()
-        return HttpService:GetAsync(GITHUB_PLAYLIST_URL)
+        return game:HttpGet(GITHUB_PLAYLIST_URL)
     end)
     
-    if sucesso and not resultado:find("404") then
+    if sucesso then
+        if resultado:find("<!DOCTYPE html>") then
+            warn("BOXFY: Erro! O link retornou HTML. Verifique o repositório.")
+            return {{n = "ERRO: LINK INVALIDO", id = "0"}}
+        end
+
         local ok, dados = pcall(function() return HttpService:JSONDecode(resultado) end)
         if ok then
-            print("BOXFY: Playlist carregada com sucesso do novo repo!")
+            print("BOXFY: " .. #dados .. " musicas carregadas com sucesso!")
             return dados
         else
-            warn("BOXFY: Erro de formatacao no JSON. Verifique virgulas extras.")
-            return {{n = "ERRO NO FORMATO", id = "0"}}
+            warn("BOXFY: Erro de formatacao no JSON.")
+            return {{n = "ERRO NO JSON", id = "0"}}
         end
     else
-        warn("BOXFY: Erro 404. Verifique se o repo 'playlist.json' e PUBLICO.")
+        warn("BOXFY: Erro ao baixar a playlist.")
         return {{n = "ERRO DE CONEXAO", id = "0"}}
     end
 end
