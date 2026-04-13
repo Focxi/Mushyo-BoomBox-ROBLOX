@@ -7,6 +7,7 @@
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
@@ -17,12 +18,7 @@ local function carregarPlaylist()
     local sucesso, resultado = pcall(function()
         return game:HttpGet(GITHUB_PLAYLIST_URL)
     end)
-    
-    if sucesso then
-        if resultado:find("<!DOCTYPE html>") then
-            warn("BOXFY: Erro! O link retornou HTML.")
-            return {{n = "ERRO: LINK INVALIDO", id = "0"}}
-        end
+    if sucesso and not resultado:find("<!DOCTYPE html>") then
         local ok, dados = pcall(function() return HttpService:JSONDecode(resultado) end)
         if ok then return dados end
     end
@@ -31,7 +27,6 @@ end
 
 local playlist = carregarPlaylist()
 local currentIndex = 1
-local isShuffle = false
 
 -- [ LIMPEZA ]
 if PlayerGui:FindFirstChild("BoxfyUltra") then PlayerGui.BoxfyUltra:Destroy() end
@@ -39,67 +34,71 @@ local sg = Instance.new("ScreenGui", PlayerGui)
 sg.Name = "BoxfyUltra"
 sg.ResetOnSpawn = false
 
--- [ NOTIFICAÇÃO DE TUTORIAL E CRÉDITOS (EXTERNA) ]
-local notify = Instance.new("Frame", sg)
-notify.Size = UDim2.new(0, 380, 0, 65)
-notify.Position = UDim2.new(0.5, -190, 1, 100)
-notify.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-notify.BorderSizePixel = 0
-Instance.new("UICorner", notify).CornerRadius = UDim.new(0, 12)
-Instance.new("UIStroke", notify).Color = Color3.fromRGB(45, 45, 45)
+-- [ NOTIFICAÇÃO EXTERNA (CRIADOR E TUTORIAL) ]
+local notifyFrame = Instance.new("Frame", sg)
+notifyFrame.Size = UDim2.new(0, 350, 0, 60)
+notifyFrame.Position = UDim2.new(0.5, -175, 1, 100) -- Começa fora da tela
+notifyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+notifyFrame.BorderSizePixel = 0
+Instance.new("UICorner", notifyFrame).CornerRadius = UDim.new(0, 12)
 
-local av = Instance.new("ImageLabel", notify)
-av.Size = UDim2.new(0, 45, 0, 45)
-av.Position = UDim2.new(0, 10, 0.5, 0)
-av.AnchorPoint = Vector2.new(0, 0.5)
-av.Image = "rbxthumb://type=AvatarHeadShot&id=10386373014&w=150&h=150"
-av.BackgroundTransparency = 1
-Instance.new("UICorner", av).CornerRadius = UDim.new(1, 0)
+local stroke = Instance.new("UIStroke", notifyFrame)
+stroke.Color = Color3.fromRGB(40, 40, 40)
+stroke.Thickness = 1
 
-local t1 = Instance.new("TextLabel", notify)
-t1.Size = UDim2.new(1, -70, 0, 20)
-t1.Position = UDim2.new(0, 65, 0, 12)
-t1.Text = "BOXFY: Criado por HRJ_DEV"
-t1.TextColor3 = Color3.new(1, 1, 1)
-t1.Font = Enum.Font.GothamBold
-t1.TextSize = 13
-t1.BackgroundTransparency = 1
-t1.TextXAlignment = Enum.TextXAlignment.Left
+local avatarImg = Instance.new("ImageLabel", notifyFrame)
+avatarImg.Size = UDim2.new(0, 45, 0, 45)
+avatarImg.Position = UDim2.new(0, 8, 0.5, 0)
+avatarImg.AnchorPoint = Vector2.new(0, 0.5)
+avatarImg.Image = "rbxthumb://type=AvatarHeadShot&id=10386373014&w=150&h=150"
+avatarImg.BackgroundTransparency = 1
+Instance.new("UICorner", avatarImg).CornerRadius = UDim.new(1, 0)
 
-local t2 = Instance.new("TextLabel", notify)
-t2.Size = UDim2.new(1, -70, 0, 30)
-t2.Position = UDim2.new(0, 65, 0, 28)
-t2.Text = "Aperte J para abrir/fechar. Equipe o radio e toque algo antes de usar o Boxfy!"
-t2.TextColor3 = Color3.fromRGB(180, 180, 180)
-t2.Font = Enum.Font.Gotham
-t2.TextSize = 10
-t2.TextWrapped = true
-t2.BackgroundTransparency = 1
-t2.TextXAlignment = Enum.TextXAlignment.Left
+local titleNotif = Instance.new("TextLabel", notifyFrame)
+titleNotif.Size = UDim2.new(1, -65, 0, 20)
+titleNotif.Position = UDim2.new(0, 60, 0, 10)
+titleNotif.Text = "BOXFY: Criado por HRJ_DEV"
+titleNotif.TextColor3 = Color3.new(1, 1, 1)
+titleNotif.Font = Enum.Font.GothamBold
+titleNotif.TextSize = 12
+titleNotif.BackgroundTransparency = 1
+titleNotif.TextXAlignment = Enum.TextXAlignment.Left
 
+local descNotif = Instance.new("TextLabel", notifyFrame)
+descNotif.Size = UDim2.new(1, -65, 0, 25)
+descNotif.Position = UDim2.new(0, 60, 0, 28)
+descNotif.Text = "Aperte J para abrir. Toque uma musica antes de usar!"
+descNotif.TextColor3 = Color3.fromRGB(180, 180, 180)
+descNotif.Font = Enum.Font.Gotham
+descNotif.TextSize = 10
+descNotif.BackgroundTransparency = 1
+descNotif.TextWrapped = true
+descNotif.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Animação de Entrada e Saída (40 segundos)
 task.spawn(function()
-    notify:TweenPosition(UDim2.new(0.5, -190, 1, -90), "Out", "Back", 0.6, true)
+    notifyFrame:TweenPosition(UDim2.new(0.5, -175, 1, -80), "Out", "Back", 0.6, true)
     task.wait(40)
-    notify:TweenPosition(UDim2.new(0.5, -190, 1, 100), "In", "Quad", 0.5, true)
+    notifyFrame:TweenPosition(UDim2.new(0.5, -175, 1, 100), "In", "Quad", 0.5, true)
     task.wait(0.6)
-    notify:Destroy()
+    notifyFrame:Destroy()
 end)
 
 -- [ HUB PRINCIPAL ]
 local main = Instance.new("Frame", sg)
-main.Size = UDim2.new(0, 310, 0, 440)
+main.Size = UDim2.new(0, 310, 0, 420)
 main.Position = UDim2.new(0.5, 0, 0.5, 0)
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-main.BackgroundTransparency = 0.05
-main.Visible = true -- Abre automaticamente
+main.Visible = true -- Alterado para abrir automaticamente
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 24)
 
+-- Atalho J
 UIS.InputBegan:Connect(function(input, gpe)
     if not gpe and input.KeyCode == Enum.KeyCode.J then main.Visible = not main.Visible end
 end)
 
--- [ FUNÇÕES DE SOM ]
+-- [ FUNÇÃO GET SOUND ]
 local function getSnd()
     local char = Player.Character
     if not char then return nil end
@@ -118,14 +117,14 @@ top.BackgroundTransparency = 1
 
 local title = Instance.new("TextLabel", top)
 title.Size = UDim2.new(1, 0, 1, 0)
-title.Text = "BOXFY CLOUD - NYXBLOKZ"
+title.Text = "BOXFY CLOUD - HRJ_DEV"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 12
 title.TextTransparency = 0.6
 title.BackgroundTransparency = 1
 
--- [ BUSCA ]
+-- [ PESQUISA ]
 local sContainer = Instance.new("Frame", main)
 sContainer.Size = UDim2.new(1, -40, 0, 34)
 sContainer.Position = UDim2.new(0.5, 0, 0, 60)
@@ -145,7 +144,7 @@ search.TextColor3 = Color3.new(1, 1, 1)
 search.Font = Enum.Font.Gotham
 search.TextSize = 13
 
--- [ SCROLLING ]
+-- [ LISTA ]
 local sc = Instance.new("ScrollingFrame", main)
 sc.Size = UDim2.new(1, -20, 1, -210)
 sc.Position = UDim2.new(0.5, 0, 0, 105)
@@ -156,7 +155,7 @@ local listLayout = Instance.new("UIListLayout", sc)
 listLayout.Padding = UDim.new(0, 5)
 listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- [ FOOTER ]
+-- [ FOOTER CONTROLES ]
 local footer = Instance.new("Frame", main)
 footer.Size = UDim2.new(1, 0, 0, 100)
 footer.Position = UDim2.new(0, 0, 1, -100)
@@ -214,13 +213,11 @@ end
 
 bPlay.MouseButton1Click:Connect(function()
     local snd = getSnd()
-    if snd then
-        if snd.IsPlaying then snd:Pause() bPlay.Text = "▶" else snd:Resume() bPlay.Text = "Ⅱ" end
-    end
+    if snd and snd.IsPlaying then snd:Pause() bPlay.Text = "▶" elseif snd then snd:Resume() bPlay.Text = "Ⅱ" end
 end)
 
 bNext.MouseButton1Click:Connect(function()
-    local n = isShuffle and math.random(1, #playlist) or (currentIndex % #playlist + 1)
+    local n = (currentIndex % #playlist + 1)
     play(n)
 end)
 
@@ -228,11 +225,6 @@ bBack.MouseButton1Click:Connect(function()
     local p = currentIndex - 1
     if p < 1 then p = #playlist end
     play(p)
-end)
-
-bShuffle.MouseButton1Click:Connect(function()
-    isShuffle = not isShuffle
-    bShuffle.TextColor3 = isShuffle and Color3.fromRGB(30, 215, 96) or Color3.new(1, 1, 1)
 end)
 
 bClose.MouseButton1Click:Connect(function() main.Visible = false end)
@@ -261,7 +253,7 @@ end
 search:GetPropertyChangedSignal("Text"):Connect(function() refresh(search.Text) end)
 refresh("")
 
--- DRAG SYSTEM
+-- Drag System
 local d, sp, mp
 top.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then d = true sp = i.Position mp = main.Position end end)
 UIS.InputChanged:Connect(function(i) if d and i.UserInputType == Enum.UserInputType.MouseMovement then 
