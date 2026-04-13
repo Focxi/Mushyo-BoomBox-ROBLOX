@@ -25,6 +25,8 @@ local function carregarPlaylist()
 end
 
 local playlist = carregarPlaylist()
+local currentIndex = 1
+local isShuffle = false
 
 -- [ LIMPEZA ]
 if PlayerGui:FindFirstChild("BoxfyUltra") then PlayerGui.BoxfyUltra:Destroy() end
@@ -32,17 +34,14 @@ local sg = Instance.new("ScreenGui", PlayerGui)
 sg.Name = "BoxfyUltra"
 sg.ResetOnSpawn = false
 
--- [ NOTIFICAÇÃO EXTERNA (EMBAIXO DA TELA) ]
+-- [ NOTIFICAÇÃO DE CRIADOR E TUTORIAL (EXTERNA) ]
 local notify = Instance.new("Frame", sg)
 notify.Size = UDim2.new(0, 380, 0, 65)
-notify.Position = UDim2.new(0.5, -190, 1, 100) -- Começa escondido embaixo
+notify.Position = UDim2.new(0.5, -190, 1, 100)
 notify.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 notify.BorderSizePixel = 0
 Instance.new("UICorner", notify).CornerRadius = UDim.new(0, 12)
-
-local stroke = Instance.new("UIStroke", notify)
-stroke.Color = Color3.fromRGB(45, 45, 45)
-stroke.Thickness = 1
+Instance.new("UIStroke", notify).Color = Color3.fromRGB(45, 45, 45)
 
 local av = Instance.new("ImageLabel", notify)
 av.Size = UDim2.new(0, 45, 0, 45)
@@ -65,7 +64,7 @@ t1.TextXAlignment = Enum.TextXAlignment.Left
 local t2 = Instance.new("TextLabel", notify)
 t2.Size = UDim2.new(1, -70, 0, 30)
 t2.Position = UDim2.new(0, 65, 0, 28)
-t2.Text = "Aperte J para abrir. Equipe o radio e toque algo antes de usar o Boxfy!"
+t2.Text = "Aperte J para abrir/fechar. Toque uma musica no radio antes de usar!"
 t2.TextColor3 = Color3.fromRGB(180, 180, 180)
 t2.Font = Enum.Font.Gotham
 t2.TextSize = 10
@@ -73,46 +72,47 @@ t2.TextWrapped = true
 t2.BackgroundTransparency = 1
 t2.TextXAlignment = Enum.TextXAlignment.Left
 
--- Animação da Notificação (Estilo solicitação)
 task.spawn(function()
     notify:TweenPosition(UDim2.new(0.5, -190, 1, -90), "Out", "Back", 0.6, true)
-    task.wait(40) -- Fica visível por 40 segundos
+    task.wait(40)
     notify:TweenPosition(UDim2.new(0.5, -190, 1, 100), "In", "Quad", 0.5, true)
     task.wait(0.6)
     notify:Destroy()
 end)
 
--- [ HUB PRINCIPAL (MENU) ]
+-- [ HUB PRINCIPAL (MODELO PERFEITO) ]
 local main = Instance.new("Frame", sg)
-main.Size = UDim2.new(0, 310, 0, 420)
+main.Size = UDim2.new(0, 310, 0, 440)
 main.Position = UDim2.new(0.5, 0, 0.5, 0)
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-main.Visible = false -- Menu começa fechado
+main.BackgroundTransparency = 0.05
+main.Visible = true -- ABRE AUTOMATICAMENTE
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 24)
 
--- [ SISTEMA DE ARRASTAR ]
-local d, sp, mp
-main.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then d = true sp = i.Position mp = main.Position end end)
-UIS.InputChanged:Connect(function(i) if d and i.UserInputType == Enum.UserInputType.MouseMovement then 
-    local delta = i.Position - sp
-    main.Position = UDim2.new(mp.X.Scale, mp.X.Offset + delta.X, mp.Y.Scale, mp.Y.Offset + delta.Y) 
-end end)
-UIS.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then d = false end end)
-
--- Atalho de Teclado
+-- Atalho J / j
 UIS.InputBegan:Connect(function(input, gpe)
     if not gpe and input.KeyCode == Enum.KeyCode.J then main.Visible = not main.Visible end
 end)
 
--- [ COMPONENTES INTERNOS DO MENU ]
+local function getSnd()
+    local char = Player.Character
+    if not char then return nil end
+    local tool = char:FindFirstChildWhichIsA("Tool")
+    if tool then
+        local s = tool:FindFirstChildWhichIsA("Sound", true)
+        if s then return s end
+    end
+    return nil
+end
+
 local top = Instance.new("Frame", main)
 top.Size = UDim2.new(1, 0, 0, 50)
 top.BackgroundTransparency = 1
 
 local title = Instance.new("TextLabel", top)
 title.Size = UDim2.new(1, 0, 1, 0)
-title.Text = "BOXFY CLOUD"
+title.Text = "BOXFY CLOUD - NYXBLOKZ"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 12
@@ -148,35 +148,92 @@ local listLayout = Instance.new("UIListLayout", sc)
 listLayout.Padding = UDim.new(0, 5)
 listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- [ CONTROLES ]
-local function getSnd()
-    local char = Player.Character
-    if not char then return nil end
-    local tool = char:FindFirstChildWhichIsA("Tool")
-    if tool then
-        local s = tool:FindFirstChildWhichIsA("Sound", true)
-        if s then return s end
-    end
-    return nil
+local footer = Instance.new("Frame", main)
+footer.Size = UDim2.new(1, 0, 0, 100)
+footer.Position = UDim2.new(0, 0, 1, -100)
+footer.BackgroundTransparency = 1
+
+local currentName = Instance.new("TextLabel", footer)
+currentName.Size = UDim2.new(1, -20, 0, 20)
+currentName.Position = UDim2.new(0.5, 0, 0, 5)
+currentName.AnchorPoint = Vector2.new(0.5, 0)
+currentName.Text = "PARADO"
+currentName.TextColor3 = Color3.fromRGB(180, 180, 180)
+currentName.Font = Enum.Font.GothamMedium
+currentName.TextSize = 10
+currentName.BackgroundTransparency = 1
+
+local ctrlFrame = Instance.new("Frame", footer)
+ctrlFrame.Size = UDim2.new(1, 0, 0, 60)
+ctrlFrame.Position = UDim2.new(0.5, 0, 0, 30)
+ctrlFrame.AnchorPoint = Vector2.new(0.5, 0)
+ctrlFrame.BackgroundTransparency = 1
+
+local function createBtn(txt, posX, size)
+    local b = Instance.new("TextButton", ctrlFrame)
+    b.Size = UDim2.new(0, size or 35, 0, size or 35)
+    b.Position = UDim2.new(posX, 0, 0.5, 0)
+    b.AnchorPoint = Vector2.new(0.5, 0.5)
+    b.Text = txt
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = (size and size > 35) and 24 or 18
+    b.BackgroundTransparency = 1
+    return b
 end
+
+local bShuffle = createBtn("⤨", 0.22)
+local bBack    = createBtn("«", 0.38)
+local bPlay    = createBtn("▶", 0.5, 45)
+local bNext    = createBtn("»", 0.62)
+local bClose   = createBtn("X", 0.78)
 
 local function play(idx)
     if not playlist[idx] then return end
+    currentIndex = idx
     local snd = getSnd()
     if snd then
         snd:Stop()
         snd.SoundId = "rbxassetid://"..playlist[idx].id
         snd:Play()
-        main.Footer.Current.Text = playlist[idx].n:upper()
+        currentName.Text = playlist[idx].n:upper()
+        bPlay.Text = "Ⅱ"
+    else
+        currentName.Text = "EQUIPE O RÁDIO!"
     end
 end
 
--- Botões e Refresh (Lógica simplificada para manter o foco na UI)
+bPlay.MouseButton1Click:Connect(function()
+    local snd = getSnd()
+    if snd then
+        if snd.IsPlaying then snd:Pause() bPlay.Text = "▶" else snd:Resume() bPlay.Text = "Ⅱ" end
+    end
+end)
+
+bNext.MouseButton1Click:Connect(function()
+    local n = isShuffle and math.random(1, #playlist) or (currentIndex % #playlist + 1)
+    play(n)
+end)
+
+bBack.MouseButton1Click:Connect(function()
+    local p = currentIndex - 1
+    if p < 1 then p = #playlist end
+    play(p)
+end)
+
+bShuffle.MouseButton1Click:Connect(function()
+    isShuffle = not isShuffle
+    bShuffle.TextColor3 = isShuffle and Color3.fromRGB(30, 215, 96) or Color3.new(1, 1, 1)
+end)
+
+bClose.MouseButton1Click:Connect(function() main.Visible = false end)
+
 local function refresh(txt)
     for _, v in pairs(sc:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
     for i, s in pairs(playlist) do
         if txt == "" or s.n:lower():find(txt:lower()) then
             local b = Instance.new("TextButton", sc)
+            b.Name = tostring(i)
             b.Size = UDim2.new(1, -10, 0, 38)
             b.Text = "      " .. s.n
             b.TextColor3 = Color3.fromRGB(160, 160, 160)
@@ -194,3 +251,12 @@ end
 
 search:GetPropertyChangedSignal("Text"):Connect(function() refresh(search.Text) end)
 refresh("")
+
+-- Drag
+local d, sp, mp
+top.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then d = true sp = i.Position mp = main.Position end end)
+UIS.InputChanged:Connect(function(i) if d and i.UserInputType == Enum.UserInputType.MouseMovement then 
+    local delta = i.Position - sp
+    main.Position = UDim2.new(mp.X.Scale, mp.X.Offset + delta.X, mp.Y.Scale, mp.Y.Offset + delta.Y) 
+end end)
+UIS.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then d = false end end)
