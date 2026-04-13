@@ -48,7 +48,7 @@ local sg = Instance.new("ScreenGui", PlayerGui)
 sg.Name = "BoxfyUltra"
 sg.ResetOnSpawn = false
 
--- [ BARRA INFERIOR (FORA DA HUB) ]
+-- [ BARRA INFERIOR (TUTORIAL E CRÉDITOS) ]
 local footerBar = Instance.new("Frame", sg)
 footerBar.Size = UDim2.new(1, 0, 0, 45)
 footerBar.Position = UDim2.new(0, 0, 1, -45)
@@ -93,12 +93,12 @@ tutorialTxt.BackgroundTransparency = 1
 tutorialTxt.TextWrapped = true
 tutorialTxt.TextXAlignment = Enum.TextXAlignment.Left
 
--- Timer para sumir o tutorial (mantendo os créditos)
-task.delay(60, function()
-    if tutorialTxt then
-        tutorialTxt:TweenSizeAndPosition(UDim2.new(0,0,1,0), UDim2.new(0,180,0,0), "Out", "Quad", 0.5, true)
-        task.wait(0.5)
-        tutorialTxt:Destroy()
+-- [ TIMER: A BARRA TOTAL SOME EM 30 SEGUNDOS ]
+task.delay(30, function()
+    if footerBar then
+        footerBar:TweenPosition(UDim2.new(0, 0, 1, 50), "In", "Quad", 0.5, true)
+        task.wait(0.6)
+        footerBar:Destroy()
     end
 end)
 
