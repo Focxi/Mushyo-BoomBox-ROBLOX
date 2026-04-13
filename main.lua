@@ -10,7 +10,7 @@ local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
 -- [ CONFIGURAÇÃO DA PLAYLIST VIA GITHUB - LINK CURTO E ANTI-CACHE ]
-local GITHUB_PLAYLIST_URL = "https://raw.githubusercontent.com/Focxi/Mushyo-BoomBox-ROBLOX/main/playlist.json?t=" .. tick()
+local GITHUB_PLAYLIST_URL = "https://raw.githubusercontent.com/Focxi/Mushyo-BoomBox-ROBLOX/refs/heads/main/playlist.json" .. tick()
 
 local function carregarPlaylist()
     local sucesso, resultado = pcall(function()
