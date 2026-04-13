@@ -9,9 +9,9 @@ local HttpService = game:GetService("HttpService")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
--- [ CONFIGURAÇÃO DA NOVA PLAYLIST EXTERNA ]
--- Atualizado para o novo repositório: Focxi/playlist.json
-local GITHUB_PLAYLIST_URL = "https://raw.githubusercontent.com/Focxi/playlist.json/main/playlist.json?t=" .. tick()
+-- [ CONFIGURAÇÃO DA PLAYLIST - LINK CORRIGIDO ]
+-- Adicionado /refs/heads/ para garantir o acesso ao arquivo bruto
+local GITHUB_PLAYLIST_URL = "https://raw.githubusercontent.com/Focxi/playlist.json/refs/heads/main/playlist.json?t=" .. tick()
 
 local function carregarPlaylist()
     local sucesso, resultado = pcall(function()
@@ -21,14 +21,14 @@ local function carregarPlaylist()
     if sucesso and not resultado:find("404") then
         local ok, dados = pcall(function() return HttpService:JSONDecode(resultado) end)
         if ok then
-            print("BOXFY: Playlist externa carregada!")
+            print("BOXFY: Playlist carregada com sucesso do novo repo!")
             return dados
         else
-            warn("BOXFY: Erro de formatacao no novo JSON.")
-            return {{n = "ERRO DE FORMATO", id = "0"}}
+            warn("BOXFY: Erro de formatacao no JSON. Verifique virgulas extras.")
+            return {{n = "ERRO NO FORMATO", id = "0"}}
         end
     else
-        warn("BOXFY: Nao encontrou a playlist no novo link. Verifique se o repo e PUBLICO.")
+        warn("BOXFY: Erro 404. Verifique se o repo 'playlist.json' e PUBLICO.")
         return {{n = "ERRO DE CONEXAO", id = "0"}}
     end
 end
@@ -37,14 +37,13 @@ local playlist = carregarPlaylist()
 local currentIndex = 1
 local isShuffle = false
 
--- [ LIMPEZA DE INTERFACE ANTIGA ]
+-- [ LIMPEZA E CRIAÇÃO DA UI ]
 if PlayerGui:FindFirstChild("BoxfyUltra") then PlayerGui.BoxfyUltra:Destroy() end
-
 local sg = Instance.new("ScreenGui", PlayerGui)
 sg.Name = "BoxfyUltra"
 sg.ResetOnSpawn = false
 
--- [ FUNÇÃO DE BUSCA POR RÁDIO ]
+-- [ FUNÇÃO GET SOUND ]
 local function getSnd()
     local char = Player.Character
     if not char then return nil end
@@ -56,7 +55,7 @@ local function getSnd()
     return nil
 end
 
--- [ INTERFACE PRINCIPAL ]
+-- [ INTERFACE ]
 local main = Instance.new("Frame", sg)
 main.Size = UDim2.new(0, 310, 0, 440)
 main.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -65,7 +64,6 @@ main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 main.BackgroundTransparency = 0.05
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 24)
 
--- Atalho (J)
 UIS.InputBegan:Connect(function(input, gpe)
     if not gpe and input.KeyCode == Enum.KeyCode.J then sg.Enabled = not sg.Enabled end
 end)
@@ -101,7 +99,6 @@ search.BackgroundTransparency = 1
 search.TextColor3 = Color3.new(1, 1, 1)
 search.Font = Enum.Font.Gotham
 search.TextSize = 13
-search.Text = ""
 
 local sc = Instance.new("ScrollingFrame", main)
 sc.Size = UDim2.new(1, -20, 1, -210)
@@ -217,7 +214,6 @@ end
 search:GetPropertyChangedSignal("Text"):Connect(function() refresh(search.Text) end)
 refresh("")
 
--- Sistema de Arrastar
 local d, sp, mp
 top.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then d = true sp = i.Position mp = main.Position end end)
 UIS.InputChanged:Connect(function(i) if d and i.UserInputType == Enum.UserInputType.MouseMovement then 
