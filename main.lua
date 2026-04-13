@@ -17,7 +17,12 @@ local function carregarPlaylist()
     local sucesso, resultado = pcall(function()
         return game:HttpGet(GITHUB_PLAYLIST_URL)
     end)
-    if sucesso and not resultado:find("<!DOCTYPE html>") then
+    
+    if sucesso then
+        if resultado:find("<!DOCTYPE html>") then
+            warn("BOXFY: Erro! O link retornou HTML.")
+            return {{n = "ERRO: LINK INVALIDO", id = "0"}}
+        end
         local ok, dados = pcall(function() return HttpService:JSONDecode(resultado) end)
         if ok then return dados end
     end
@@ -34,7 +39,7 @@ local sg = Instance.new("ScreenGui", PlayerGui)
 sg.Name = "BoxfyUltra"
 sg.ResetOnSpawn = false
 
--- [ NOTIFICAÇÃO DE CRIADOR E TUTORIAL (EXTERNA) ]
+-- [ NOTIFICAÇÃO DE TUTORIAL E CRÉDITOS (EXTERNA) ]
 local notify = Instance.new("Frame", sg)
 notify.Size = UDim2.new(0, 380, 0, 65)
 notify.Position = UDim2.new(0.5, -190, 1, 100)
@@ -64,7 +69,7 @@ t1.TextXAlignment = Enum.TextXAlignment.Left
 local t2 = Instance.new("TextLabel", notify)
 t2.Size = UDim2.new(1, -70, 0, 30)
 t2.Position = UDim2.new(0, 65, 0, 28)
-t2.Text = "Aperte J para abrir/fechar. Toque uma musica no radio antes de usar!"
+t2.Text = "Aperte J para abrir/fechar. Equipe o radio e toque algo antes de usar o Boxfy!"
 t2.TextColor3 = Color3.fromRGB(180, 180, 180)
 t2.Font = Enum.Font.Gotham
 t2.TextSize = 10
@@ -80,21 +85,21 @@ task.spawn(function()
     notify:Destroy()
 end)
 
--- [ HUB PRINCIPAL (MODELO PERFEITO) ]
+-- [ HUB PRINCIPAL ]
 local main = Instance.new("Frame", sg)
 main.Size = UDim2.new(0, 310, 0, 440)
 main.Position = UDim2.new(0.5, 0, 0.5, 0)
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 main.BackgroundTransparency = 0.05
-main.Visible = true -- ABRE AUTOMATICAMENTE
+main.Visible = true -- Abre automaticamente
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 24)
 
--- Atalho J / j
 UIS.InputBegan:Connect(function(input, gpe)
     if not gpe and input.KeyCode == Enum.KeyCode.J then main.Visible = not main.Visible end
 end)
 
+-- [ FUNÇÕES DE SOM ]
 local function getSnd()
     local char = Player.Character
     if not char then return nil end
@@ -106,6 +111,7 @@ local function getSnd()
     return nil
 end
 
+-- [ TOP BAR ]
 local top = Instance.new("Frame", main)
 top.Size = UDim2.new(1, 0, 0, 50)
 top.BackgroundTransparency = 1
@@ -119,6 +125,7 @@ title.TextSize = 12
 title.TextTransparency = 0.6
 title.BackgroundTransparency = 1
 
+-- [ BUSCA ]
 local sContainer = Instance.new("Frame", main)
 sContainer.Size = UDim2.new(1, -40, 0, 34)
 sContainer.Position = UDim2.new(0.5, 0, 0, 60)
@@ -138,6 +145,7 @@ search.TextColor3 = Color3.new(1, 1, 1)
 search.Font = Enum.Font.Gotham
 search.TextSize = 13
 
+-- [ SCROLLING ]
 local sc = Instance.new("ScrollingFrame", main)
 sc.Size = UDim2.new(1, -20, 1, -210)
 sc.Position = UDim2.new(0.5, 0, 0, 105)
@@ -148,6 +156,7 @@ local listLayout = Instance.new("UIListLayout", sc)
 listLayout.Padding = UDim.new(0, 5)
 listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
+-- [ FOOTER ]
 local footer = Instance.new("Frame", main)
 footer.Size = UDim2.new(1, 0, 0, 100)
 footer.Position = UDim2.new(0, 0, 1, -100)
@@ -252,7 +261,7 @@ end
 search:GetPropertyChangedSignal("Text"):Connect(function() refresh(search.Text) end)
 refresh("")
 
--- Drag
+-- DRAG SYSTEM
 local d, sp, mp
 top.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then d = true sp = i.Position mp = main.Position end end)
 UIS.InputChanged:Connect(function(i) if d and i.UserInputType == Enum.UserInputType.MouseMovement then 
