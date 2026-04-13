@@ -9,8 +9,9 @@ local HttpService = game:GetService("HttpService")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
--- [ CONFIGURAÇÃO DA PLAYLIST VIA GITHUB - LINK CURTO E ANTI-CACHE ]
-local GITHUB_PLAYLIST_URL = "https://raw.githubusercontent.com/Focxi/Mushyo-BoomBox-ROBLOX/refs/heads/main/playlist.json" .. tick()
+-- [ CONFIGURAÇÃO DA PLAYLIST VIA GITHUB - CORREÇÃO DE LINK E ANTI-CACHE ]
+-- Adicionado "?t=" para que o tick() não quebre a extensão .json
+local GITHUB_PLAYLIST_URL = "https://raw.githubusercontent.com/Focxi/Mushyo-BoomBox-ROBLOX/refs/heads/main/playlist.json?t=" .. tick()
 
 local function carregarPlaylist()
     local sucesso, resultado = pcall(function()
@@ -20,13 +21,14 @@ local function carregarPlaylist()
     if sucesso and not resultado:find("404") then
         local ok, dados = pcall(function() return HttpService:JSONDecode(resultado) end)
         if ok then
+            print("BOXFY: Playlist carregada com sucesso!")
             return dados
         else
-            warn("Erro de formato no JSON do GitHub.")
+            warn("BOXFY: Erro de formato no JSON (verifique virgulas no GitHub).")
             return {{n = "ERRO DE FORMATO", id = "0"}}
         end
     else
-        warn("Erro ao carregar playlist do GitHub. Usando lista vazia.")
+        warn("BOXFY: Erro ao carregar playlist (404 ou conexao). Link usado: " .. GITHUB_PLAYLIST_URL)
         return {{n = "ERRO NA NUVEM", id = "0"}}
     end
 end
@@ -46,13 +48,11 @@ sg.ResetOnSpawn = false
 local function getSnd()
     local char = Player.Character
     if not char then return nil end
-    -- Tenta achar na ferramenta equipada primeiro
     local tool = char:FindFirstChildWhichIsA("Tool")
     if tool then
         local s = tool:FindFirstChildWhichIsA("Sound", true)
         if s then return s end
     end
-    -- Se não achou na equipada, varre tudo (backup)
     for _, item in pairs(char:GetChildren()) do
         if item:IsA("Tool") then
             local potentialSound = item:FindFirstChildWhichIsA("Sound", true)
@@ -83,7 +83,7 @@ top.BackgroundTransparency = 1
 
 local title = Instance.new("TextLabel", top)
 title.Size = UDim2.new(1, 0, 1, 0)
-title.Text = "BOXFY CLOUD - HRJ_DEV"
+title.Text = "BOXFY CLOUD - NYXBLOKZ"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 12
