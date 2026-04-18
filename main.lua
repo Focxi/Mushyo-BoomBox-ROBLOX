@@ -1,7 +1,6 @@
 --[[ 
-    NYXBLOKZ BOOMBOX SYSTEM - CORE
-    VINCULATED TO GITHUB: Focxi/playlist.json
-    FIXED BY GEMINI (V2 - BARRA REDUZIDA)
+    NYXBLOKZ BOOMBOX SYSTEM - GLOBAL SYNC
+    BY HRJ_DEV (REWRITTEN FOR SERVER REPLICATION)
 ]]
 
 local Players = game:GetService("Players")
@@ -20,20 +19,11 @@ local function carregarPlaylist()
     
     if sucesso then
         if resultado:find("<!DOCTYPE html>") then
-            warn("BOXFY: Erro! O link retornou HTML.")
             return {{n = "ERRO: LINK INVALIDO", id = "0"}}
         end
-
         local ok, dados = pcall(function() return HttpService:JSONDecode(resultado) end)
-        if ok then
-            print("BOXFY: " .. #dados .. " musicas carregadas!")
-            return dados
-        else
-            warn("BOXFY: Erro no JSON.")
-            return {{n = "ERRO NO JSON", id = "0"}}
-        end
+        if ok then return dados else return {{n = "ERRO NO JSON", id = "0"}} end
     else
-        warn("BOXFY: Erro de conexao.")
         return {{n = "ERRO DE CONEXAO", id = "0"}}
     end
 end
@@ -42,27 +32,26 @@ local playlist = carregarPlaylist()
 local currentIndex = 1
 local isShuffle = false
 
--- [ LIMPEZA E CRIAÇÃO DA UI ]
+-- [ UI EXISTENTE (NYXBLOKZ STYLE) ]
 if PlayerGui:FindFirstChild("BoxfyUltra") then PlayerGui.BoxfyUltra:Destroy() end
 local sg = Instance.new("ScreenGui", PlayerGui)
 sg.Name = "BoxfyUltra"
 sg.ResetOnSpawn = false
 
--- [ BARRA INFERIOR COMPACTA ]
+-- Barra Inferior (Mantida como solicitado)
 local footerBar = Instance.new("Frame", sg)
-footerBar.Size = UDim2.new(1, 0, 0, 40) -- Altura levemente menor
+footerBar.Size = UDim2.new(1, 0, 0, 40)
 footerBar.Position = UDim2.new(0, 0, 1, -40)
 footerBar.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 footerBar.BackgroundTransparency = 0.3
 footerBar.BorderSizePixel = 0
 
 local footerContent = Instance.new("Frame", footerBar)
-footerContent.Size = UDim2.new(0, 600, 1, 0) -- Largura reduzida de 800 para 600
+footerContent.Size = UDim2.new(0, 600, 1, 0)
 footerContent.Position = UDim2.new(0.5, 0, 0.5, 0)
 footerContent.AnchorPoint = Vector2.new(0.5, 0.5)
 footerContent.BackgroundTransparency = 1
 
--- Avatar
 local avatarImg = Instance.new("ImageLabel", footerContent)
 avatarImg.Size = UDim2.new(0, 30, 0, 30)
 avatarImg.Position = UDim2.new(0, 5, 0.5, 0)
@@ -71,7 +60,6 @@ avatarImg.Image = "rbxthumb://type=AvatarHeadShot&id=10386373014&w=150&h=150"
 avatarImg.BackgroundTransparency = 1
 Instance.new("UICorner", avatarImg).CornerRadius = UDim.new(1, 0)
 
--- Crédito
 local credText = Instance.new("TextLabel", footerContent)
 credText.Size = UDim2.new(0, 100, 1, 0)
 credText.Position = UDim2.new(0, 40, 0, 0)
@@ -82,24 +70,21 @@ credText.TextSize = 10
 credText.BackgroundTransparency = 1
 credText.TextXAlignment = Enum.TextXAlignment.Left
 
--- Tutorial
 local tutorialTxt = Instance.new("TextLabel", footerContent)
 tutorialTxt.Size = UDim2.new(1, -150, 1, 0)
 tutorialTxt.Position = UDim2.new(0, 150, 0, 0)
-tutorialTxt.Text = "Aperte J para abrir. Equipe o rádio e toque algo antes de usar."
+tutorialTxt.Text = "Aperte J para abrir. Musicas tocam para TODOS."
 tutorialTxt.TextColor3 = Color3.fromRGB(200, 200, 200)
 tutorialTxt.Font = Enum.Font.Gotham
 tutorialTxt.TextSize = 10
 tutorialTxt.BackgroundTransparency = 1
 tutorialTxt.TextXAlignment = Enum.TextXAlignment.Left
 
--- [ TIMER: SOME TUDO EM 30 SEGUNDOS ]
 task.delay(30, function()
     if footerBar then
-        -- Animação de descida suave
         footerBar:TweenPosition(UDim2.new(0, 0, 1, 10), "In", "Quad", 0.5, true)
         task.wait(0.6)
-        footerBar:Destroy() -- Deleta completamente da memória
+        footerBar:Destroy()
     end
 end)
 
@@ -109,22 +94,45 @@ main.Size = UDim2.new(0, 310, 0, 420)
 main.Position = UDim2.new(0.5, 0, 0.5, 0)
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-main.BackgroundTransparency = 0.05
-main.Visible = false -- Inicia invisível para não poluir a tela
+main.Visible = false
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 24)
 
--- [ FUNÇÕES DE SOM E CONTROLE ]
-local function getSnd()
+-- [ LÓGICA DE REPLICAÇÃO GLOBAL ]
+local function play(idx)
+    if not playlist[idx] then return end
+    currentIndex = idx
+    local songId = tostring(playlist[idx].id)
     local char = Player.Character
-    if not char then return nil end
-    local tool = char:FindFirstChildWhichIsA("Tool")
+    local tool = char and char:FindFirstChildWhichIsA("Tool")
+
     if tool then
-        local s = tool:FindFirstChildWhichIsA("Sound", true)
-        if s then return s end
+        -- Tenta encontrar o RemoteEvent que o jogo usa para o rádio
+        local remote = tool:FindFirstChild("PlaySong") or 
+                       tool:FindFirstChild("ServerSound") or 
+                       tool:FindFirstChild("SetSound") or
+                       tool:FindFirstChildWhichIsA("RemoteEvent")
+
+        if remote then
+            -- ENVIA PARA O SERVIDOR (TODO MUNDO OUVE)
+            remote:FireServer(songId)
+            currentName.Text = "GLOBAL: " .. playlist[idx].n:upper()
+        else
+            -- FALLBACK: SE NÃO TIVER REMOTE, TOCA LOCAL
+            local snd = tool:FindFirstChildWhichIsA("Sound", true)
+            if snd then
+                snd:Stop()
+                snd.SoundId = "rbxassetid://"..songId
+                snd:Play()
+                currentName.Text = "LOCAL: " .. playlist[idx].n:upper()
+            end
+        end
+        bPlay.Text = "Ⅱ"
+    else
+        currentName.Text = "EQUIPE O RÁDIO NO INVENTÁRIO!"
     end
-    return nil
 end
 
+-- [ CONTROLES DA UI ]
 UIS.InputBegan:Connect(function(input, gpe)
     if not gpe and input.KeyCode == Enum.KeyCode.J then main.Visible = not main.Visible end
 end)
@@ -135,7 +143,7 @@ top.BackgroundTransparency = 1
 
 local title = Instance.new("TextLabel", top)
 title.Size = UDim2.new(1, 0, 1, 0)
-title.Text = "BOXFY CLOUD - HRJ_DEV"
+title.Text = "BOXFY CLOUD - NYXBLOKZ"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 12
@@ -169,7 +177,6 @@ sc.BackgroundTransparency = 1
 sc.ScrollBarThickness = 0
 local listLayout = Instance.new("UIListLayout", sc)
 listLayout.Padding = UDim.new(0, 5)
-listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
 local footer = Instance.new("Frame", main)
 footer.Size = UDim2.new(1, 0, 0, 100)
@@ -180,7 +187,7 @@ local currentName = Instance.new("TextLabel", footer)
 currentName.Size = UDim2.new(1, -20, 0, 20)
 currentName.Position = UDim2.new(0.5, 0, 0, 5)
 currentName.AnchorPoint = Vector2.new(0.5, 0)
-currentName.Text = "PARADO"
+currentName.Text = "AGUARDANDO..."
 currentName.TextColor3 = Color3.fromRGB(180, 180, 180)
 currentName.Font = Enum.Font.GothamMedium
 currentName.TextSize = 10
@@ -211,25 +218,14 @@ local bPlay    = createBtn("▶", 0.5, 45)
 local bNext    = createBtn("»", 0.62)
 local bClose   = createBtn("X", 0.78)
 
-local function play(idx)
-    if not playlist[idx] then return end
-    currentIndex = idx
-    local snd = getSnd()
-    if snd then
-        snd:Stop()
-        snd.SoundId = "rbxassetid://"..playlist[idx].id
-        snd:Play()
-        currentName.Text = playlist[idx].n:upper()
-        bPlay.Text = "Ⅱ"
-    else
-        currentName.Text = "EQUIPE O RÁDIO!"
-    end
-end
-
 bPlay.MouseButton1Click:Connect(function()
-    local snd = getSnd()
-    if snd then
-        if snd.IsPlaying then snd:Pause() bPlay.Text = "▶" else snd:Resume() bPlay.Text = "Ⅱ" end
+    local char = Player.Character
+    local tool = char and char:FindFirstChildWhichIsA("Tool")
+    if tool then
+        local snd = tool:FindFirstChildWhichIsA("Sound", true)
+        if snd then
+            if snd.IsPlaying then snd:Pause() bPlay.Text = "▶" else snd:Resume() bPlay.Text = "Ⅱ" end
+        end
     end
 end)
 
@@ -246,7 +242,7 @@ end)
 
 bShuffle.MouseButton1Click:Connect(function()
     isShuffle = not isShuffle
-    bShuffle.TextColor3 = isShuffle and Color3.fromRGB(30, 215, 96) or Color3.new(1, 1, 1)
+    bShuffle.TextColor3 = isShuffle and Color3.fromRGB(0, 255, 100) or Color3.new(1, 1, 1)
 end)
 
 bClose.MouseButton1Click:Connect(function() main.Visible = false end)
@@ -269,12 +265,12 @@ local function refresh(txt)
             b.MouseButton1Click:Connect(function() play(i) end)
         end
     end
-    sc.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
 end
 
 search:GetPropertyChangedSignal("Text"):Connect(function() refresh(search.Text) end)
 refresh("")
 
+-- Arrastar (Fixado)
 local d, sp, mp
 top.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then d = true sp = i.Position mp = main.Position end end)
 UIS.InputChanged:Connect(function(i) if d and i.UserInputType == Enum.UserInputType.MouseMovement then 
